@@ -1,6 +1,6 @@
 import sys
 import random
-from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QMenu
+from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
 from PySide6.QtGui import QPainter, QPen, QBrush, QFont
 from PySide6.QtCore import Qt, QTimer
 
@@ -23,9 +23,10 @@ class SnakeGame(QGraphicsView):
         self.init_screen()
 
     def init_screen(self):
-        start_text = self.scene().addText("Press any key to start", QFont("Arial", 18))
+        self.scene().clear()
+        start_text = self.scene().addText("Valitse vaikeustaso:\n1. Helppo\n2. Keskivaikea\n3. Vaikea", QFont("Arial", 18))
         text_width = start_text.boundingRect().width()
-        text_x = (self.width() - text_width) / 5
+        text_x = (self.width() - text_width) / 2
         start_text.setPos(text_x, GRID_HEIGHT * CELL_SIZE / 2)
 
     def draw_board_limits(self):
@@ -36,18 +37,46 @@ class SnakeGame(QGraphicsView):
         key = event.key()
 
         if not self.game_started:
+            if key == Qt.Key_1:
+                self.difficulty = 'helppo'
+                self.game_speed = 300
+            elif key == Qt.Key_2:
+                self.difficulty = 'keskivaikea'
+                self.game_speed = 200
+            elif key == Qt.Key_3:
+                self.difficulty = 'vaikea'
+                self.game_speed = 100
+            else:
+                # Ohitetaan muut näppäimet
+                return
+
             self.scene().clear()  # Tyhjennetään näyttö
             self.start_game()
             self.game_started = True
             self.game_over_flag = False  # Nollataan peli
 
         elif self.game_over_flag:  # Uuden pelin aloitus Game Over -tilanteessa
-            if key not in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down):  # Ei sallita nuolinäppäimiä
-                self.scene().clear()
-                self.init_screen()
-                self.game_started = False
+            if key in (Qt.Key_1, Qt.Key_2, Qt.Key_3):
+                # Käsitellään vaikeustason valinta
+                if key == Qt.Key_1:
+                    self.difficulty = 'helppo'
+                    self.game_speed = 300
+                elif key == Qt.Key_2:
+                    self.difficulty = 'keskivaikea'
+                    self.game_speed = 200
+                elif key == Qt.Key_3:
+                    self.difficulty = 'vaikea'
+                    self.game_speed = 100
 
-        if key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down):
+                self.scene().clear()
+                self.start_game()
+                self.game_over_flag = False
+                self.game_started = True
+            else:
+                # Ei tehdä mitään muilla näppäimillä
+                pass
+
+        elif key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down):
             # päivitetään suunta vain jos se ei ole vastakkainen valitulle suunnalle
             if key == Qt.Key_Left and self.direction != Qt.Key_Right:
                 self.direction = key
@@ -103,7 +132,7 @@ class SnakeGame(QGraphicsView):
             x, y = segment
             self.scene().addRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, QPen(Qt.black), QBrush(Qt.black))
 
-        self.scene().addText(f"Score: {self.score}", QFont("Arial", 12))
+        self.scene().addText(f"Pisteet: {self.score}", QFont("Arial", 12))
         fx, fy = self.food
         self.scene().addRect(fx * CELL_SIZE, fy * CELL_SIZE, CELL_SIZE, CELL_SIZE, QPen(Qt.black), QBrush(Qt.red))
 
@@ -125,16 +154,17 @@ class SnakeGame(QGraphicsView):
 
         self.score = 0  # Alusta pistelasku
         self.place_food()  # Aseta ruoka pelikentälle
-        self.timer.start(300)
+        self.timer.start(self.game_speed)
 
     def game_over(self):
         # Näytä "Game Over" -teksti pelin päätyttyä
-        game_over_text = self.scene().addText("Game Over\nPress any key to start new game", QFont("Arial", 18))
+        game_over_text = self.scene().addText("Peli ohi\nPaina 1, 2 tai 3 aloittaaksesi uuden pelin", QFont("Arial", 18))
         text_width = game_over_text.boundingRect().width()
         text_x = (self.width() - text_width) / 2
         game_over_text.setPos(text_x, GRID_HEIGHT * CELL_SIZE / 2)
         self.timer.stop()
         self.game_over_flag = True  # Asetetaan peli päättyneeksi
+        self.game_started = False  # Nollataan peli aloitettavaksi uudelleen
 
 def main():
     app = QApplication(sys.argv)
